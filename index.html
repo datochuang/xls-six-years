@@ -1,0 +1,879 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Interactive 3D tour of XLS from 2020 to 2026: a history track on people, companies and direction, and a concepts track with five hands-on basics.">
+<meta property="og:title" content="Six Years of XLS">
+<meta name="theme-color" content="#0a1020">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%230a1020%22/%3E%3Ccircle cx=%2216%22 cy=%2216%22 r=%228%22 fill=%22%23f0b54c%22/%3E%3C/svg%3E">
+</head>
+<body>
+<title>Six Years of XLS</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:wght@600;700&family=Source+Sans+3:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* 版面：左欄說明卡、右邊 3D 畫面，兩邊不重疊；手機時說明卡在下方。說明卡可以收起。單一深色世界，刻意不做淺色版。 */
+:root {
+  --bg: #0a1020;          /* 深夜藍，畫布底色 */
+  --panel: #0e1630;
+  --line: rgba(160, 180, 220, 0.18);
+  --fg: #e9edf7;
+  --muted: #a3afcc;
+  --accent: #f0b54c;      /* 琥珀：現在、焦點、register、OpenAI */
+  --flow: #58d1c4;        /* 青：資料與訊息、Antmicro */
+  --warn: #ff7b8e;        /* 粉紅：bug、停掉的提案 */
+  --google: #5f82d6;
+  --openai: #f0b54c;
+  --antmicro: #58d1c4;
+  --other: #8c95ab;
+  --side: 400px;
+  --font-display: "Spectral", Georgia, "Times New Roman", serif;
+  --font-body: "Source Sans 3", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "JetBrains Mono", "Menlo", "Consolas", monospace;
+  color-scheme: dark;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg);
+  font-family: var(--font-body); font-size: 15px; line-height: 1.65;
+  overflow: hidden;
+}
+#app { display: flex; width: 100%; height: 100%; }
+
+/* 左欄：說明 */
+#side {
+  flex: 0 0 var(--side); width: var(--side); min-height: 0; display: flex; flex-direction: column; overflow: hidden;
+  background: var(--panel); border-right: 1px solid var(--line);
+  padding-left: env(safe-area-inset-left, 0px); padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px);
+  transition: flex-basis .25s ease, width .25s ease;
+}
+#side.folded { flex-basis: 0; width: 0; border-right: 0; }
+#side .body { flex: 1 1 auto; min-height: 0; overflow: auto; width: var(--side); padding: 18px 20px 16px; }
+#side .ctl { flex: 0 0 auto; width: var(--side); border-top: 1px solid var(--line); padding: 12px 20px 14px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+#side .ctl:empty { display: none; }
+#side .eyebrow { font: 600 11px/1 var(--font-mono); letter-spacing: .12em; color: var(--accent); text-transform: uppercase; margin-bottom: 10px; }
+#side .eyebrow.c { color: var(--flow); }
+#side h2 { font-family: var(--font-display); font-weight: 600; font-size: 21px; line-height: 1.3; margin: 0 0 10px; text-wrap: balance; }
+#side p { margin: 0 0 10px; color: var(--fg); }
+#side p b { color: var(--accent); font-weight: 700; }
+#side p.note { color: var(--muted); font-size: 13.5px; }
+#side ol { margin: 0 0 10px; padding-left: 1.3em; }
+#side li { margin-bottom: 6px; }
+.btn {
+  appearance: none; border: 1px solid var(--accent); background: transparent; color: var(--accent);
+  font: 500 14px/1 var(--font-body); padding: 10px 14px; border-radius: 10px; cursor: pointer;
+}
+.btn.primary { background: var(--accent); color: #1a1200; font-weight: 700; }
+.btn.flow { border-color: var(--flow); color: var(--flow); }
+.btn.flow.primary { background: var(--flow); color: #06201c; }
+.btn:focus-visible { outline: 2px solid var(--flow); outline-offset: 2px; }
+.btn[aria-pressed="true"] { background: var(--flow); border-color: var(--flow); color: #06201c; }
+.readout { font: 600 13px/1.3 var(--font-mono); color: var(--flow); }
+.readout.bad { color: var(--warn); }
+.readout.wide { flex: 1 1 100%; font-weight: 500; color: var(--fg); }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+.slider { flex: 1 1 100%; min-width: 0; }
+.slider label { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 14px; font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+.legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; background: var(--sw); }
+.kv { font-family: var(--font-mono); font-size: 12.5px; color: var(--muted); }
+.kv b { color: var(--fg); font-weight: 600; }
+/* 區域熱度：這一年動得最多的目錄 */
+.heat-h { font: 600 11px/1 var(--font-mono); letter-spacing: .08em; color: var(--muted); margin: 10px 0 6px; }
+.heat { list-style: none; padding: 0; margin: 0 0 6px; display: grid; gap: 4px; font-size: 12.5px; }
+.heat li { display: grid; grid-template-columns: 12.5em 1fr 3.2em; align-items: center; gap: 8px; color: var(--muted); margin: 0; }
+.heat .bar { height: 8px; border-radius: 4px; background: var(--google); opacity: .9; }
+.heat li.hot .bar { background: var(--accent); }
+.heat b { color: var(--fg); font-weight: 500; text-align: right; font: 500 12px/1 var(--font-mono); }
+
+/* 右邊：3D 畫面，上方是兩條線的切換與站號，右下是導覽鍵 */
+#stage { flex: 1 1 auto; min-width: 0; position: relative; }
+#c { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
+#c.dragging { cursor: grabbing; }
+#top {
+  position: absolute; top: 0; left: 0; right: 0; z-index: 5;
+  padding-top: calc(10px + env(safe-area-inset-top, 0px)); padding-left: 16px; padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; align-items: center; gap: 8px 14px; pointer-events: none; flex-wrap: wrap;
+}
+#top .brand { font-family: var(--font-display); font-weight: 700; font-size: 15px; letter-spacing: .04em; color: var(--accent); white-space: nowrap; cursor: pointer; pointer-events: auto; }
+#tracks { display: flex; gap: 6px; pointer-events: auto; }
+#tracks button {
+  appearance: none; border: 1px solid var(--line); background: rgba(10,16,32,.75); color: var(--muted);
+  font: 600 12.5px/1 var(--font-body); padding: 8px 12px; border-radius: 999px; cursor: pointer; letter-spacing: .04em;
+}
+#tracks button[aria-pressed="true"] { background: var(--fg); color: #0a1020; border-color: var(--fg); }
+#tracks button:focus-visible, #dots button:focus-visible, #fold:focus-visible { outline: 2px solid var(--flow); outline-offset: 2px; }
+#dots { display: flex; gap: 6px; align-items: center; pointer-events: auto; flex-wrap: wrap; }
+#dots button {
+  appearance: none; border: 1px solid var(--line); background: rgba(10,16,32,.7); color: var(--muted);
+  font: 500 11px/1 var(--font-mono); padding: 6px 8px; border-radius: 999px; cursor: pointer; letter-spacing: .02em;
+}
+#dots button[aria-current="step"] { background: var(--accent); color: #1a1200; border-color: var(--accent); font-weight: 600; }
+#dots[hidden] { display: none; }
+#fold { margin-left: auto; pointer-events: auto; appearance: none; border: 1px solid var(--line); background: rgba(10,16,32,.75); color: var(--muted); font: 500 12px/1 var(--font-body); padding: 8px 11px; border-radius: 999px; cursor: pointer; }
+#nav { position: absolute; z-index: 6; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); display: flex; gap: 8px; }
+#nav button {
+  appearance: none; border: 1px solid var(--line); background: rgba(13,20,40,.9); color: var(--fg);
+  font: 500 14px/1 var(--font-body); padding: 12px 16px; border-radius: 10px; cursor: pointer; backdrop-filter: blur(10px);
+}
+#nav button:disabled { opacity: .35; cursor: default; }
+#nav button:focus-visible { outline: 2px solid var(--flow); outline-offset: 2px; }
+#hint { position: absolute; z-index: 4; left: 16px; bottom: calc(22px + env(safe-area-inset-bottom, 0px)); font-size: 12px; color: var(--muted); pointer-events: none; opacity: .9; }
+
+@media (max-width: 720px) {
+  #app { flex-direction: column-reverse; }
+  #side { flex: 0 0 46%; width: 100%; border-right: 0; border-top: 1px solid var(--line); padding-left: 0; padding-top: 0; transition: flex-basis .25s ease; }
+  #side.folded { flex-basis: 0; border-top: 0; }
+  #side .body, #side .ctl { width: 100%; }
+  #side .body { padding: 14px 16px 10px; }
+  #side h2 { font-size: 16.5px; }
+  #top { padding-left: 12px; padding-right: 12px; }
+  #nav { bottom: 12px; right: 12px; }
+  #nav button { padding: 10px 12px; }
+  #hint { display: none; }
+  #top .brand { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div id="app">
+  <aside id="side" aria-live="polite">
+    <div class="body"><div class="eyebrow" id="p-eyebrow"></div><h2 id="p-title"></h2><div id="p-html"></div></div>
+    <div class="ctl" id="p-ctl"></div>
+  </aside>
+  <div id="stage">
+    <canvas id="c" aria-label="3D scene of the XLS journey"></canvas>
+    <div id="top">
+      <div class="brand" id="brand" title="Back to start">Six Years of XLS</div>
+      <div id="tracks" role="tablist" aria-label="Two tracks"><button type="button" id="tab-h" aria-pressed="false">History: people and direction</button><button type="button" id="tab-c" aria-pressed="false">Concepts: five basics</button></div>
+      <div id="dots" role="tablist" aria-label="Stations"></div>
+      <button id="fold" type="button" aria-expanded="true">Hide notes</button>
+    </div>
+    <div id="nav"><button id="prev" type="button">Previous</button><button id="next" type="button">Next</button></div>
+    <div id="hint">Drag to orbit · arrow keys change station</div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function () {
+  'use strict';
+  if (!window.THREE) { document.getElementById('p-html').innerHTML = '<p class="note">The 3D library did not load. Please reload the page.</p>'; return; }
+  const RM = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const C = { bg: 0x0a1020, accent: 0xf0b54c, flow: 0x58d1c4, warn: 0xff7b8e, google: 0x5f82d6, openai: 0xf0b54c, antmicro: 0x58d1c4, other: 0x8c95ab, slab: 0x1a2440, slab2: 0x233052, text: '#e9edf7', muted: '#a3afcc' };
+  const GAP = 130;     // 概念站與站的距離（鏡頭拉遠後一站可見 90 單位寬，站距要比它大）
+  const CZ = -900;     // 概念世界放在 z = -900，跟封面與歷史世界互不入鏡（fog 到 340 就看不見）
+  const COVER_Z = -400;
+  const YW = 24;       // 歷史世界：一年 24 單位
+  const yx = t => (t - 2020) * YW;
+  const hex = c => '#' + c.toString(16).padStart(6, '0');
+
+  // ---------- renderer / scene ----------
+  const canvas = document.getElementById('c');
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(C.bg);
+  scene.fog = new THREE.Fog(C.bg, 140, 340);
+  const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 900);
+  scene.add(new THREE.HemisphereLight(0xbfd4ff, 0x0a1020, 0.9));
+  const key = new THREE.DirectionalLight(0xffffff, 0.9); key.position.set(30, 60, 40); scene.add(key);
+  const fill = new THREE.DirectionalLight(0x58d1c4, 0.25); fill.position.set(-40, 20, -30); scene.add(fill);
+
+  (function stars() {
+    const n = 1800, pos = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) { pos[i * 3] = (Math.random() - 0.3) * 1000; pos[i * 3 + 1] = Math.random() * 200 - 20; pos[i * 3 + 2] = -120 - Math.random() * 600; }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    scene.add(new THREE.Points(g, new THREE.PointsMaterial({ color: 0x9fb4e8, size: 0.9, sizeAttenuation: true, transparent: true, opacity: 0.7 })));
+  })();
+
+  // ---------- helpers ----------
+  function label(text, o) {
+    o = o || {};
+    const size = o.size || 26, pad = 14, font = (o.weight || 500) + ' ' + size + 'px ' + (o.mono ? '"JetBrains Mono", Menlo, monospace' : '"Source Sans 3", "Helvetica Neue", Arial, sans-serif');
+    const lines = String(text).split('\n');
+    const cv = document.createElement('canvas'), ctx = cv.getContext('2d');
+    ctx.font = font;
+    const w = Math.max.apply(null, lines.map(l => ctx.measureText(l).width)) + pad * 2, lh = size * 1.3, h = lh * lines.length + pad * 2;
+    cv.width = Math.ceil(w); cv.height = Math.ceil(h);
+    ctx.font = font; ctx.textBaseline = 'middle'; ctx.textAlign = 'center';
+    if (o.bg) { ctx.fillStyle = o.bg; roundRect(ctx, 0, 0, cv.width, cv.height, 10); ctx.fill(); }
+    ctx.fillStyle = o.color || C.text;
+    lines.forEach((l, i) => ctx.fillText(l, cv.width / 2, pad + lh * (i + 0.5)));
+    const tex = new THREE.CanvasTexture(cv); tex.minFilter = THREE.LinearFilter; tex.encoding = THREE.sRGBEncoding;
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false }));
+    const s = o.scale || 0.03; sp.scale.set(cv.width * s, cv.height * s, 1);
+    return sp;
+  }
+  function roundRect(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+  function mat(color, o) { o = o || {}; return new THREE.MeshStandardMaterial({ color, roughness: o.rough != null ? o.rough : 0.55, metalness: o.metal || 0.1, emissive: o.emissive || 0x000000, emissiveIntensity: o.ei != null ? o.ei : 1, transparent: !!o.opacity, opacity: o.opacity != null ? o.opacity : 1, side: o.side || THREE.FrontSide }); }
+  function box(w, h, d, color, o) { return new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat(color, o)); }
+  function ball(r, color, o) { return new THREE.Mesh(new THREE.SphereGeometry(r, 20, 16), mat(color, o)); }
+  function line(points, color, opacity) { const g = new THREE.BufferGeometry().setFromPoints(points); return new THREE.Line(g, new THREE.LineBasicMaterial({ color, transparent: true, opacity: opacity == null ? 0.8 : opacity })); }
+  function dashed(points, color, opacity) { const g = new THREE.BufferGeometry().setFromPoints(points); const l = new THREE.Line(g, new THREE.LineDashedMaterial({ color, dashSize: 1.2, gapSize: 0.8, transparent: true, opacity: opacity == null ? 0.9 : opacity })); l.computeLineDistances(); return l; }
+  function tube(points, r, color, o) { const curve = new THREE.CatmullRomCurve3(points); const m = new THREE.Mesh(new THREE.TubeGeometry(curve, 24, r, 8, false), mat(color, o)); m.userData.curve = curve; return m; }
+  function arrow(from, to, color) { const dir = new THREE.Vector3().subVectors(to, from); const len = dir.length(); return new THREE.ArrowHelper(dir.normalize(), from, len, color, Math.min(1.8, len * 0.3), 0.9); }
+  function plane(w, h, color, opacity) { return new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ color, transparent: true, opacity, side: THREE.DoubleSide, depthWrite: false })); }
+  function platform(w, d, x, z, color) { const m = box(w, 0.6, d, color || C.slab, { rough: 0.8 }); m.position.set(x, -0.3, z); return m; }
+  function clear(group) { while (group.children.length) { const ch = group.children.pop(); group.remove(ch); ch.traverse && ch.traverse(n => { if (n.geometry) n.geometry.dispose(); if (n.material) { if (n.material.map) n.material.map.dispose(); n.material.dispose(); } }); } }
+  const V = (x, y, z) => new THREE.Vector3(x, y, z);
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const ease = t => t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+  const st = { t: 0 };
+
+  // =====================================================================
+  //  資料（窗口 2020-05-13 → 2026-11-19；作者身分照 e-mail 網域分）
+  // =====================================================================
+  const YEARS = [2020, 2021, 2022, 2023, 2024, 2025, 2026];
+  const DATA = { google: [679, 990, 952, 1393, 2062, 2149, 1665], antmicro: [0, 0, 0, 27, 63, 129, 38], openai: [0, 0, 0, 0, 172, 251, 98], other: [185, 43, 37, 56, 36, 70, 82] };
+  // 動到的目錄（一個 commit 可以算進幾個區域）；「找 bug」算 commit 主旨提到 fuzz 的
+  const AREAS = [
+    ['Language DSLX', [312, 342, 207, 432, 670, 813, 464]],
+    ['  ↳ type system v2', [0, 0, 0, 0, 18, 356, 191]],
+    ['Intermediate form IR', [156, 138, 113, 152, 304, 230, 170]],
+    ['Optimization passes', [73, 83, 107, 161, 362, 314, 349]],
+    ['Verilog output (codegen)', [65, 105, 96, 96, 226, 197, 95]],
+    ['Stage cutting (scheduling)', [21, 14, 35, 67, 91, 75, 73]],
+    ['Bug finding (fuzz)', [17, 40, 77, 49, 49, 86, 122]],
+    ['C++ front end (xlscc)', [19, 67, 162, 158, 155, 133, 88]],
+    ['Command-line tools', [81, 87, 138, 142, 244, 117, 75]],
+    ['C API (public)', [0, 14, 7, 15, 80, 127, 42]],
+    ['MLIR dialect', [0, 0, 0, 0, 89, 129, 50]],
+    ['ZSTD (Antmicro)', [0, 0, 0, 1, 62, 111, 17]],
+    ['Delay / area estimation', [31, 21, 25, 34, 65, 21, 22]],
+    ['On-chip network (noc)', [12, 66, 6, 19, 40, 5, 9]]
+  ];
+  function heat(yi, hot) {
+    const rows = AREAS.map(a => [a[0], yi.reduce((s, i) => s + a[1][i], 0)]).filter(r => r[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, 7);
+    const mx = rows[0][1];
+    return '<div class="heat-h">Busiest areas (commits)</div><ul class="heat">' + rows.map(r => '<li' + ((hot || []).indexOf(r[0]) >= 0 ? ' class="hot"' : '') + '><span>' + r[0] + '</span><span class="bar" style="width:' + Math.max(3, r[1] / mx * 100) + '%"></span><b>' + r[1] + '</b></li>').join('') + '</ul>';
+  }
+  // 人：每條線一段一段，lane 是當時的公司；數字是那個帳號的 commit 數
+  const PEOPLE = [
+    { n: 'Chris Leary (DSLX, the language)', author: true, segs: [['google', 2020.37, 2024.31, 1036], ['openai', 2024.37, 2026.87, 366]] },
+    { n: 'Mark Heffernan (IR, scheduler, codegen)', author: true, segs: [['google', 2020.37, 2025.54, 715], ['openai', 2025.59, 2026.73, 52]] },
+    { n: 'Rob Springer', segs: [['google', 2020.38, 2023.01, 414]] },
+    { n: 'Sean Purser-Haskell (C++ front end xlscc)', segs: [['google', 2020.40, 2026.86, 325]] },
+    { n: 'Paul Rigge', segs: [['google', 2020.78, 2026.88, 559]] },
+    { n: 'Eric Astor', segs: [['google', 2021.28, 2026.81, 695]] },
+    { n: 'Henner Zeller', segs: [['google', 2023.12, 2026.65, 457], ['other', 2026.67, 2026.78, 56]] },
+    { n: 'Alex Light', segs: [['google', 2023.55, 2026.88, 907]] },
+    { n: 'Rich McKeever', segs: [['google', 2024.27, 2026.88, 464]] },
+    { n: 'David Plass', segs: [['google', 2024.56, 2026.75, 532]] },
+    { n: 'Daniel Killebrew', segs: [['openai', 2025.15, 2026.86, 47]] },
+    { n: 'Sirui Lu', segs: [['openai', 2025.56, 2026.04, 51]] },
+    { n: 'Robert Winkler', segs: [['antmicro', 2023.37, 2026.69, 85]] },
+    { n: 'Pawel Czarnecki', segs: [['antmicro', 2023.39, 2025.37, 60]] },
+    { n: 'Antmicro, six others', segs: [['antmicro', 2023.9, 2026.6, 112]] },
+    { n: 'Hans Montero (Columbia University intern)', segs: [['other', 2020.46, 2020.64, 114]] }
+  ];
+  const EVENTS = [
+    [2020.37, 'Google open-sources XLS: Leary on the language, Heffernan on IR and codegen'],
+    [2020.46, 'Intern Montero joins: 114 commits in one summer'],
+    [2021.3, 'procs and channels enter the IR: modules with state that pass messages'],
+    [2022.35, 'SDC scheduler, AOT; C++ front end at its peak; main line ①: proc inlining'],
+    [2023.12, 'Zeller joins Google'],
+    [2023.2, 'LSP, FFI; dslx_fmt gets 104 commits this year'],
+    [2023.37, 'First Antmicro commit'],
+    [2023.45, 'Main line ②: proc-scoped channels design doc'],
+    [2023.75, 'Antmicro starts the ZSTD decoder'],
+    [2024.31, 'Leary’s last Google commit'],
+    [2024.33, 'xlsynth created (2024-04-29)'],
+    [2024.37, 'Leary’s first commit back upstream, from OpenAI'],
+    [2024.7, 'MLIR dialect open-sourced; delay and area estimators merged'],
+    [2024.87, 'Type system v2 begins'],
+    [2025.15, 'Killebrew (OpenAI) starts sending DSLX changes'],
+    [2025.37, 'Main line ③: synchronous procs proposal'],
+    [2025.54, 'Heffernan’s last Google commit; the proposal stalls'],
+    [2025.59, 'Heffernan returns, from OpenAI'],
+    [2025.73, 'xlsynth switches to numbered releases, v0.2.0'],
+    [2025.87, 'codegen 1.5 begins'],
+    [2026.1, 'Explicit State Access'],
+    [2026.45, 'OpenAI’s sum types land upstream'],
+    [2026.65, 'Zeller leaves Google, continues from a personal account'],
+    [2026.88, 'Data ends 2026-11-19']
+  ];
+  const MAINLINE = [
+    { a: 2022.0, b: 2022.95, t: '① proc inlining\nflatten into one module, then schedule', color: C.flow },
+    { a: 2023.45, b: 2025.9, t: '② proc-scoped channels\ncut and generate each one, then stitch', color: C.flow },
+    { a: 2025.37, b: 2025.56, t: '③ synchronous procs proposal\nwhole network as one pipeline\n(stalled)', color: C.warn, stop: true },
+    { a: 2025.87, b: 2026.9, t: 'codegen 1.5\nnew foundation (in progress)', color: C.accent, dash: true }
+  ];
+  const PERIODS = [
+    [2020.3, 2021.0, 'Foundations: language, IR, JIT, fuzzer'],
+    [2021.0, 2023.0, 'Functions to modules: procs and channels; C++ front end peaks'],
+    [2023.0, 2024.0, 'Tooling: formatter, editor, FFI; outsiders arrive'],
+    [2024.0, 2025.0, 'Expansion: C API, MLIR, estimators merged, type system v2 starts'],
+    [2025.0, 2026.0, 'Type system v2; main line ② lands, ③ stalls; codegen 1.5 starts'],
+    [2026.0, 2026.9, 'Explicit State Access; codegen 1.5; most bug-finding work yet']
+  ];
+
+  // =====================================================================
+  //  歷史世界：三排景。前排（近）：每個人一條橫條，顏色是當時的公司，跳線是換公司；
+  //  中排：xlsynth 的窄路與搬了三次的主線；後排（遠）：每年的 commit 長條當天際線，方向的看板掛在上面。
+  // =====================================================================
+  const LANES = { google: { z0: -1, z1: -11.5, color: C.google, name: 'Google' }, openai: { z0: -13.5, z1: -17, color: C.openai, name: 'OpenAI' }, antmicro: { z0: -19, z1: -22.5, color: C.antmicro, name: 'Antmicro' }, other: { z0: -24.5, z1: -27, color: C.other, name: 'Others' } };
+  Object.values(LANES).forEach(L => { L.z = (L.z0 + L.z1) / 2; });
+  const XZ = -31, MZ = -37, BZ = -47;   // xlsynth 路、主線、後排長條的 z
+  const hist = new THREE.Group(); scene.add(hist);
+  function buildHistory() {
+    const g = hist, X0 = yx(2020.2), X1 = yx(2026.95), CX = (X0 + X1) / 2;
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(X1 - X0 + 36, 84), new THREE.MeshStandardMaterial({ color: 0x0f1830, roughness: 0.95 }));
+    ground.rotation.x = -Math.PI / 2; ground.position.set(CX, -0.6, -24); g.add(ground);
+    YEARS.forEach(y => {
+      const x = yx(y);
+      g.add(line([V(x, -0.5, 6), V(x, -0.5, -56)], 0x9fb4e8, 0.22));
+      const l = label(String(y), { mono: true, size: 40, color: '#f0b54c', weight: 600, scale: 0.05 }); l.position.set(yx(y + 0.5), 1.6, 3.5); g.add(l);
+    });
+    // 前排：lane 與人（像甘特圖：一人一條，長度是在這家公司送 commit 的期間）
+    Object.keys(LANES).forEach(k => {
+      const L = LANES[k];
+      const rib = plane(X1 - X0 + 8, L.z0 - L.z1 + 0.6, L.color, 0.1); rib.rotation.x = -Math.PI / 2; rib.position.set(CX, -0.45, L.z); g.add(rib);
+      const nl = label(L.name, { size: 30, weight: 700, scale: 0.04, color: hex(L.color) }); nl.position.set(X0 - 10, 0.6, L.z); g.add(nl);
+    });
+    const rowA = label('Front row: one bar per person, colored by employer at the time; an arc is a change of employer', { size: 22, color: '#a3afcc', scale: 0.034, bg: 'rgba(10,16,32,.7)' }); rowA.position.set(yx(2021.6), 13.5, -5); g.add(rowA);
+    const slotOf = {};
+    PEOPLE.forEach(p => {
+      let prevEnd = null;
+      p.segs.forEach((s, si) => {
+        const L = LANES[s[0]];
+        const slot = slotOf[s[0]] = (slotOf[s[0]] || 0) + 1;
+        const z = L.z0 - (slot - 1) * 1.0 - 0.5;
+        const xa = yx(s[1]), xb = yx(s[2]), h = p.author ? 0.5 : 0.32;
+        const bar = box(xb - xa, h, p.author ? 0.85 : 0.7, L.color, { emissive: L.color, ei: 0.3, rough: 0.5 }); bar.position.set((xa + xb) / 2, h / 2, z); g.add(bar);
+        if (si === 0) {
+          const yk = 1.6 + ((slot - 1) % 5) * 2.0;
+          g.add(line([V(xa, h, z), V(xa, yk - 0.6, z)], L.color, 0.6));
+          const nl = label(p.n + '  ' + s[3], { size: 22, scale: 0.034, color: p.author ? '#ffffff' : '#d6ddf0', weight: p.author ? 700 : 500, bg: 'rgba(10,16,32,.8)' }); nl.position.set(xa + nl.scale.x / 2 + 0.3, yk, z); g.add(nl);
+        } else {
+          const z1 = prevEnd.z, x1 = prevEnd.x;
+          g.add(tube([V(x1, 0.3, z1), V((x1 + xa) / 2, 3.4, (z1 + z) / 2), V(xa, 0.3, z)], 0.16, L.color, { emissive: L.color, ei: 0.7 }));
+          const al = label(p.n.split(' (')[0] + ' → ' + L.name + '  ' + s[3], { size: 20, scale: 0.034, color: hex(L.color), bg: 'rgba(10,16,32,.85)' }); al.position.set((x1 + xa) / 2, 4.8, (z1 + z) / 2); g.add(al);
+        }
+        prevEnd = { x: xb, z };
+      });
+    });
+    // 回流 upstream 的箭頭（外部 lane → Google lane）
+    [[LANES.openai, 2024.75, 'OpenAI sends back upstream\n521 commits'], [LANES.antmicro, 2024.0, 'Antmicro sends back upstream\n257 commits']].forEach(a => {
+      const x = yx(a[1]), zFrom = a[0].z0 + 0.3, zTo = LANES.google.z1 - 0.4;
+      g.add(tube([V(x, 0.4, zFrom), V(x + 2, 5, (zFrom + zTo) / 2), V(x + 4, 0.9, zTo)], 0.14, a[0].color, { emissive: a[0].color, ei: 0.6 }));
+      const tip = new THREE.Mesh(new THREE.ConeGeometry(0.55, 1.3, 10), mat(a[0].color, { emissive: a[0].color, ei: 0.7 })); tip.position.set(x + 4, 0.9, zTo + 0.6); tip.rotation.x = Math.PI / 2; g.add(tip);
+      const l = label(a[2], { size: 20, scale: 0.034, color: hex(a[0].color), bg: 'rgba(10,16,32,.85)' }); l.position.set(x + 2, 11, (zFrom + zTo) / 2); g.add(l);
+    });
+    // 中排：xlsynth 的窄路（2024-04-29 起）
+    const xa = yx(2024.33), xb = X1;
+    const xr = plane(xb - xa, 3.2, C.openai, 0.22); xr.rotation.x = -Math.PI / 2; xr.position.set((xa + xb) / 2, -0.4, XZ); g.add(xr);
+    g.add(dashed([V(xa, -0.3, XZ + 1.6), V(xb, -0.3, XZ + 1.6)], C.openai, 0.8)); g.add(dashed([V(xa, -0.3, XZ - 1.6), V(xb, -0.3, XZ - 1.6)], C.openai, 0.8));
+    const xl = label('xlsynth (since 2024-04-29)\nmain mirrors upstream; the release branch stacks\nPRs upstream has not merged yet, built as macOS / Linux binaries', { size: 20, scale: 0.034, color: '#f0b54c', bg: 'rgba(10,16,32,.85)' }); xl.position.set(yx(2026.45), 10.8, XZ); g.add(xl);
+    for (let k = 0; k < 14; k++) { const t = 2024.5 + k * 0.17; const sb = box(1.2, 0.5 + (k % 3) * 0.2, 2.2, C.openai, { rough: 0.5, emissive: C.openai, ei: 0.2 }); sb.position.set(yx(t), 0.1, XZ); g.add(sb); }
+    g.add(tube([V(yx(2024.45), 0.3, LANES.google.z1 - 0.5), V(yx(2024.4), 3.2, (LANES.google.z1 + XZ) / 2), V(yx(2024.4), 0.4, XZ + 1.8)], 0.12, C.google, { emissive: C.google, ei: 0.5 }));
+    const m1l = label('mirrors main', { size: 20, scale: 0.034, color: '#9fb4e8', bg: 'rgba(10,16,32,.85)' }); m1l.position.set(yx(2024.4) + 3, 6.2, (LANES.google.z1 + XZ) / 2); g.add(m1l);
+    g.add(tube([V(yx(2025.9), 0.3, LANES.openai.z1 - 0.3), V(yx(2025.95), 3.2, (LANES.openai.z1 + XZ) / 2), V(yx(2026.0), 0.4, XZ + 1.8)], 0.12, C.openai, { emissive: C.openai, ei: 0.5 }));
+    const m2l = label('PRs that cannot wait go on the release branch first', { size: 20, scale: 0.034, color: '#f0b54c', bg: 'rgba(10,16,32,.85)' }); m2l.position.set(yx(2025.95), 2.0, (LANES.openai.z1 + XZ) / 2); g.add(m2l);
+    // 中排：主線
+    const ml = label('Main line: schedule many modules as one whole (moved three times, still unfinished)', { size: 24, weight: 600, color: '#e9edf7', scale: 0.04, bg: 'rgba(10,16,32,.85)' }); ml.position.set(yx(2021.4), 7, MZ); g.add(ml);
+    g.add(line([V(X0, 0.3, MZ), V(X1, 0.3, MZ)], 0x9fb4e8, 0.25));
+    MAINLINE.forEach(m => {
+      const a = yx(m.a), b = yx(m.b);
+      if (m.dash) g.add(dashed([V(a, 0.5, MZ), V(b, 0.5, MZ)], m.color, 0.9));
+      else g.add(tube([V(a, 0.5, MZ), V((a + b) / 2, 0.5, MZ), V(b, 0.5, MZ)], 0.3, m.color, { emissive: m.color, ei: 0.4 }));
+      const flag = box(0.18, 3.4, 0.18, m.color); flag.position.set(a, 2.1, MZ); g.add(flag);
+      if (m.stop) { const x = ball(0.7, C.warn, { emissive: C.warn, ei: 1 }); x.position.set(b, 0.5, MZ); g.add(x); }
+      const l = label(m.t, { size: 22, scale: 0.038, color: hex(m.color), bg: 'rgba(10,16,32,.85)' }); l.position.set(m.stop ? b + 9 : (a + b) / 2, m.dash ? 2.4 : 5.6, MZ); g.add(l);
+    });
+    // 後排：每年的 commit 當天際線，方向的看板掛在上面
+    const sc = 16 / 2600, bw = 12;
+    YEARS.forEach((y, i) => {
+      const x = yx(y + 0.5); let h0 = 0;
+      [['google', C.google], ['antmicro', C.antmicro], ['openai', C.openai], ['other', C.other]].forEach(k => {
+        const h = DATA[k[0]][i] * sc; if (h <= 0) return;
+        const b = box(bw, h, 6, k[1], { rough: 0.6 }); b.position.set(x, h0 + h / 2, BZ); g.add(b); h0 += h;
+      });
+      const tot = DATA.google[i] + DATA.antmicro[i] + DATA.openai[i] + DATA.other[i];
+      const tl = label(String(tot), { mono: true, size: 24, color: '#e9edf7', scale: 0.045 }); tl.position.set(x, h0 + 1.4, BZ); g.add(tl);
+    });
+    const rowC = label('Back row: commits per year, colored by the author’s company', { size: 22, color: '#a3afcc', scale: 0.034, bg: 'rgba(10,16,32,.7)' }); rowC.position.set(yx(2020.9), 11.5, BZ + 4); g.add(rowC);
+    PERIODS.forEach((p, i) => {
+      const a = yx(p[0]), b = yx(p[1]), yb = 18.5 + (i % 2) * 3.8;
+      g.add(line([V(a + 0.6, yb - 1.8, BZ), V(b - 0.6, yb - 1.8, BZ)], C.accent, 0.7));
+      g.add(line([V(a + 0.6, yb - 1.8, BZ), V(a + 0.6, yb - 2.9, BZ)], C.accent, 0.7)); g.add(line([V(b - 0.6, yb - 1.8, BZ), V(b - 0.6, yb - 2.9, BZ)], C.accent, 0.7));
+      const l = label(p[2], { size: 28, weight: 600, scale: 0.05, color: '#f0b54c', bg: 'rgba(10,16,32,.85)' }); l.position.set((a + b) / 2, yb, BZ); g.add(l);
+    });
+    const rowD = label('Direction: what each period worked on', { size: 22, color: '#a3afcc', scale: 0.034, bg: 'rgba(10,16,32,.7)' }); rowD.position.set(X0 - 8, 24, BZ); g.add(rowD);
+    // 站的聚光：半透明的地面框
+    st.hi = plane(10, 62, C.accent, 0.07); st.hi.rotation.x = -Math.PI / 2; st.hi.position.set(0, -0.5, -24); st.hi.visible = false; g.add(st.hi);
+    // 播放：時間游標與事件旗
+    st.cursor = plane(66, 28, C.accent, 0.1); st.cursor.rotation.y = Math.PI / 2; st.cursor.position.set(X0, 12, -24); st.cursor.visible = false; g.add(st.cursor);
+    st.flags = EVENTS.map((e, i) => { const l = label(e[1], { size: 26, scale: 0.05, color: i === EVENTS.length - 1 ? '#a3afcc' : '#e9edf7', bg: 'rgba(10,16,32,.88)' }); l.position.set(yx(e[0]), 12 + (i % 4) * 3.2, -16); l.visible = false; g.add(l); return l; });
+  }
+  function setHighlight(a, b) { if (a == null) { st.hi.visible = false; return; } st.hi.visible = true; st.hi.scale.x = (yx(b) - yx(a)) / 10; st.hi.position.x = (yx(a) + yx(b)) / 2; }
+  function hideFlags() { st.flags.forEach(f => { f.visible = false; }); st.cursor.visible = false; st.playOn = false; }
+  const histCam = (a, b) => { const cx = (yx(a) + yx(b)) / 2; return { pos: V(cx + 3, 32, 44), target: V(cx, 4, -24) }; };
+  const LEGEND = '<div class="legend"><span style="--sw: var(--google)">Google</span><span style="--sw: var(--openai)">OpenAI</span><span style="--sw: var(--antmicro)">Antmicro</span><span style="--sw: var(--other)">Others: students, individuals</span></div>';
+
+  // =====================================================================
+  //  站
+  // =====================================================================
+  const S = [];
+  const stationGroups = [];
+
+  // ---------- 封面 ----------
+  S.push({
+    track: 'cover', dot: 'Start',
+    eyebrow: 'Six years of XLS · two tracks',
+    title: 'Six years of XLS: one track for people and direction, one for the basic concepts',
+    html: '<p>XLS is a hardware design tool that Google open-sourced in 2020. Engineers describe what a circuit does in a software-like language (DSLX); the tool cuts it into pipeline stages and emits Verilog.</p><p><b>History</b>, eight stations: who did the work, how three companies collaborate in one repo, and where the focus moved. <b>Concepts</b>, five stations: five basic ideas, each one hands-on. Switch tracks any time with the buttons at the top.</p><p class="note">Drag to orbit the view. Data comes from commit and issue statistics of the two repos (window 2020-05-13 to 2026-11-19).</p>',
+    ctl: '<button class="btn primary" id="go-h" type="button">Take the history track</button><button class="btn flow primary" id="go-c" type="button">Take the concepts track</button>',
+    init() { document.getElementById('go-h').onclick = () => goTo(TRACKS.h[0]); document.getElementById('go-c').onclick = () => goTo(TRACKS.c[0]); },
+    cam: { pos: V(0, 7, COVER_Z + 44), target: V(0, 5, COVER_Z) },
+    build(g) {
+      g.position.z = COVER_Z;
+      g.add(platform(60, 24, 0, 0));
+      [[-10, 'History', 'People and direction · 8 stations', C.accent], [10, 'Concepts', 'Five basics · 5 stations', C.flow]].forEach(d => {
+        const frame = new THREE.Mesh(new THREE.TorusGeometry(6.5, 0.5, 12, 48, Math.PI), mat(d[3], { emissive: d[3], ei: 0.5 })); frame.position.set(d[0], 1, 0); g.add(frame);
+        const p1 = box(1, 7, 1, d[3], { emissive: d[3], ei: 0.5 }); p1.position.set(d[0] - 6.5, 0.5, 0); g.add(p1);
+        const p2 = p1.clone(); p2.position.x = d[0] + 6.5; g.add(p2);
+        const inner = plane(12, 10, d[3], 0.12); inner.position.set(d[0], 2, -0.2); g.add(inner);
+        const t = label(d[1], { size: 58, weight: 700, scale: 0.05 }); t.position.set(d[0], 3.8, 0.5); g.add(t);
+        const s = label(d[2], { size: 24, color: '#a3afcc', scale: 0.03 }); s.position.set(d[0], 0.6, 0.5); g.add(s);
+      });
+      const t = label('Six Years of XLS', { size: 64, weight: 700, scale: 0.06 }); t.position.set(0, 14, -4); g.add(t);
+      const t2 = label('DSLX / XLS: from birth to today', { size: 30, color: '#a3afcc', scale: 0.05 }); t2.position.set(0, 10.4, -4); g.add(t2);
+    }
+  });
+
+  // ---------- 歷史 ----------
+  S.push({
+    track: 'h', dot: 'Overview',
+    eyebrow: 'History · overview · 2020 → 2026',
+    title: 'Six-year overview: people from three companies work in one repo, and the main line is scheduling many modules as one whole',
+    html: '<p>Three rows. <b>Front</b>: one bar per person, colored by the company they worked for at the time; a bar that arcs over to another lane is a change of employer, and the arrows are changes sent back upstream by outside companies. <b>Middle</b>: the xlsynth side road and a main line that moved three times. <b>Back</b>: commits per year by company, with each period’s direction above.</p>' + LEGEND + '<p class="note">Press “Play six years” to see the events in order. Window 2020-05-13 to 2026-11-19; affiliation by e-mail domain.</p>',
+    ctl: '<button class="btn primary" id="play6" type="button">Play six years</button><span class="readout wide" id="play6-out"></span>',
+    init() { setHighlight(null); hideFlags(); document.getElementById('play6').onclick = () => { st.flags.forEach(f => { f.visible = false; }); st.playT = 2020.2; st.playOn = true; st.cursor.visible = true; }; },
+    cam: { pos: V(90, 104, 158), target: V(84, 0, -22) },
+    build() {},
+    tick(dt) {
+      if (!st.playOn) return;
+      st.playT += dt * (RM ? 100 : 0.55);
+      st.cursor.position.x = yx(st.playT);
+      let lastText = '';
+      EVENTS.forEach((e, i) => { if (e[0] <= st.playT) { st.flags[i].visible = true; lastText = e[0].toFixed(0) + ': ' + e[1]; } });
+      document.getElementById('play6-out').textContent = lastText;
+      if (st.playT >= 2026.95) { st.playOn = false; st.cursor.visible = false; }
+    }
+  });
+  S.push({
+    track: 'h', dot: '2020',
+    eyebrow: 'History · station 1 · 2020',
+    title: '2020, the birth: two authors split the work, nineteen people inside Google',
+    html: '<p><b>Who</b>: Chris Leary wrote the language, DSLX. Mark Heffernan wrote the intermediate form IR, the scheduler that cuts stages, and the codegen that emits Verilog. Rob Springer and Sean Purser-Haskell joined the same year; a Columbia University intern sent 114 commits in one summer. This year: 19 Google accounts, 11 others.</p><p><b>Direction</b>: foundations. The language moved from a Python prototype to C++; the IR, the JIT and the fuzzer that generates random test programs all started this year.</p>' + heat([0], ['Language DSLX', 'Intermediate form IR']),
+    ctl: '', init() { setHighlight(2020.3, 2021.0); hideFlags(); },
+    cam: histCam(2020.3, 2021.0), build() {}
+  });
+  S.push({
+    track: 'h', dot: '21–22',
+    eyebrow: 'History · station 2 · 2021 to 2022',
+    title: '2021 to 2022: Google’s division of labor takes shape, from one function to modules that pass messages',
+    html: '<p><b>Who</b>: still Google alone, 28 and 29 authors a year. Heffernan put modules with state, and the messages between them, into the IR. The C++ front end (xlscc), led by Purser-Haskell, was at its busiest in these two years. Springer left in early 2023.</p><p><b>Direction</b>: from “one function becomes one pipeline” to “many modules passing messages”. To schedule several modules together, the 2022 answer was to flatten them into one module first: the main line’s first attempt (① in the middle row). The SDC scheduler and AOT compilation arrived the same year.</p>' + heat([1, 2], ['C++ front end (xlscc)', 'Intermediate form IR']),
+    ctl: '', init() { setHighlight(2021.0, 2023.0); hideFlags(); },
+    cam: histCam(2021.0, 2023.0), build() {}
+  });
+  S.push({
+    track: 'h', dot: '2023',
+    eyebrow: 'History · station 3 · 2023',
+    title: '2023: outsiders arrive, the core turns over, tooling fills in',
+    html: '<p><b>Who</b>: Antmicro, an engineering services company from Poznań, Poland, with a Swedish company in Gothenburg, sent its first commits in May and started a ZSTD decoder in October: the first group outside Google to take part continuously. Henner Zeller joined Google in February; Alex Light, Eric Astor and Paul Rigge became the new core. Leary’s 340 commits this year are the most by any individual in any year.</p><p><b>Direction</b>: tooling. The dslx_fmt formatter, editor integration through LSP, and FFI for calling external Verilog from DSLX. The design doc for the main line’s second attempt, proc-scoped channels, appeared in June (② in the middle row). FDO, feeding synthesis results back into scheduling, was tried and dropped.</p>' + heat([3], ['Language DSLX', 'Command-line tools']),
+    ctl: '', init() { setHighlight(2023.0, 2024.0); hideFlags(); },
+    cam: histCam(2023.0, 2024.0), build() {}
+  });
+  S.push({
+    track: 'h', dot: '2024',
+    eyebrow: 'History · station 4 · 2024',
+    title: '2024: an author leaves Google, xlsynth is born, changes start flowing back from OpenAI',
+    html: '<p><b>Who</b>: Leary’s last Google commit was April 24. He created xlsynth on April 29 and from May 16 kept sending changes upstream from an OpenAI account, 172 that year; the C API is his work from there. Google accounts grew to 39 (Rich McKeever and David Plass joined); Antmicro sent 63.</p><p><b>Direction</b>: expansion on all fronts; passes, IR, codegen and tools all hit yearly highs. The MLIR dialect was open-sourced in September, delay and area estimation merged into estimators, and type system v2 started in November. The arcs and arrows in the front row and the narrow road behind them are where OpenAI and xlsynth come in.</p>' + heat([4], ['Optimization passes', 'C API (public)']),
+    ctl: '', init() { setHighlight(2024.0, 2025.0); hideFlags(); },
+    cam: histCam(2024.0, 2025.0), build() {}
+  });
+  S.push({
+    track: 'h', dot: '2025',
+    eyebrow: 'History · station 5 · 2025',
+    title: '2025: three companies at work, the second author leaves, the main line’s third attempt stalls halfway',
+    html: '<p><b>Who</b>: 46 Google authors worked on type system v2 and on landing proc-scoped channels; five OpenAI people sent 251 commits (C API, DSLX semantics); eight Antmicro people sent 129 (ZSTD). Heffernan left Google on July 17 and was back from OpenAI on August 2. xlsynth switched to numbered releases in September.</p><p><b>Direction</b>: the main line’s third attempt. In May Heffernan proposed letting the tool schedule a whole network of modules as one pipeline (synchronous procs, ③ in the middle row); after he left, the implementation stopped at the scheduling layer. In November a rewrite of the Verilog-emitting stage began from scratch (codegen 1.5, the dashed line).</p>' + heat([5], ['  ↳ type system v2', 'C API (public)']),
+    ctl: '', init() { setHighlight(2025.0, 2026.0); hideFlags(); },
+    cam: histCam(2025.0, 2026.0), build() {}
+  });
+  S.push({
+    track: 'h', dot: '2026',
+    eyebrow: 'History · station 6 · 2026 (to 11-19)',
+    title: '2026: a second turnover of the core, focus on language and verification, monthly commits down a fifth',
+    html: '<p><b>Who</b>: 42 Google authors; Zeller left in August and continues from a personal account. OpenAI sent 98, including sum types by Daniel Killebrew; Antmicro sent 38. Commits average 171 a month, a fifth below 2025’s 217.</p><p><b>Direction</b>: Explicit State Access, codegen 1.5 catching up with old features, DSLX fuzz testing; bug-finding work is at its highest yet. A third of all issues are about the language itself; the median issue closes in 8 days, but half stay open: the core team picks what it needs.</p>' + heat([6], ['Bug finding (fuzz)', 'Optimization passes']),
+    ctl: '', init() { setHighlight(2026.0, 2026.9); hideFlags(); },
+    cam: histCam(2026.0, 2026.9), build() {}
+  });
+  S.push({
+    track: 'h', dot: 'Three points',
+    eyebrow: 'History · station 7 · for evaluators',
+    title: 'For evaluators: three points',
+    html: '<ol><li>The tool’s steadiest investment is “the translation is always correct”: automatic bug finding and equivalence checking, never paused in six years.</li><li>Its weak spot is timing arrangement when many modules form a system, exactly the wall we hit in our trials. The main line has moved three times; Google is on it and not done.</li><li>Direction is set by Google’s and OpenAI’s internal needs. Outside users have a small voice; nobody is queuing to build what we need.</li></ol><p class="note">Sources: commit and issue statistics of google/xls and xlsynth/xlsynth, window 2020-05-13 to 2026-11-19; affiliation by e-mail domain.</p>',
+    ctl: '<button class="btn flow" id="to-c" type="button">See the five basic concepts</button><button class="btn" id="home" type="button">Back to start</button>',
+    init() { setHighlight(null); hideFlags(); document.getElementById('to-c').onclick = () => goTo(TRACKS.c[0]); document.getElementById('home').onclick = () => goTo(0); },
+    onlyWhenCurrent: true,
+    cam: { pos: V(yx(2023.5), 12, 110), target: V(yx(2023.5), 6, 40) },
+    build(g) {
+      const X = yx(2023.5);
+      st.cards = [['Translation always correct', 'six years of steady investment', C.flow], ['Timing across a system', 'weak spot, moved three times, unfinished', C.warn], ['Direction set by two companies', 'outside voices are small', C.accent]].map((c, i) => {
+        const grp = new THREE.Group(); grp.position.set(X - 13 + i * 13, 8, 40);
+        const b = box(10, 6, 0.6, C.slab2, { rough: 0.5, emissive: c[2], ei: 0.12 }); grp.add(b);
+        const bar = box(10, 0.4, 0.7, c[2], { emissive: c[2], ei: 0.6 }); bar.position.set(0, 3.1, 0); grp.add(bar);
+        const l = label(c[0] + '\n' + c[1], { size: 22, scale: 0.022, weight: 600 }); l.position.set(0, 0, 0.6); grp.add(l);
+        g.add(grp); return grp;
+      });
+    },
+    tick() { if (RM) return; st.cards.forEach((c, i) => { c.position.y = 8 + Math.sin(st.t * 0.9 + i) * 0.35; }); }
+  });
+
+  // ---------- 概念 ----------
+  // C1 翻譯鏈
+  S.push({
+    track: 'c', dot: '1',
+    eyebrow: 'Concepts · station 1',
+    title: 'The translation chain: you write what to do, the tool decides which cycle does it',
+    html: '<p>Translation takes four steps: write the description, turn it into a dataflow graph, cut it into stages by the clock, emit Verilog. You do only the first step; the tool does the third. That is the difference from hand-written RTL: every line of RTL lives in a specific cycle, while this description has no cycles at all. Cycles appear in step three.</p><p class="note">The code on the left is DSLX, with Rust-like syntax. In the graph each dot is an operation and each line is data flowing; the amber plate is a register that cuts the graph into two stages.</p>',
+    ctl: '<button class="btn primary" id="play" type="button">Play the translation</button><span class="readout" id="play-out"></span>',
+    init() { document.getElementById('play').onclick = () => { st.pulse = 0; st.pulseOn = true; }; },
+    cam: { pos: V(0, 15, CZ + 78), target: V(0, 2, CZ) },
+    build(g) {
+      g.position.z = CZ;
+      const xs = [-21, -7, 7, 21];
+      ['Description: what to do', 'Dataflow graph', 'Cut into stages by clock', 'Verilog'].forEach((t, i) => {
+        g.add(platform(11, 11, xs[i], 0));
+        const l = label(t, { size: 26, weight: 600 }); l.position.set(xs[i], 7.5, 0); g.add(l);
+        if (i < 3) g.add(arrow(V(xs[i] + 6, 1, 0), V(xs[i + 1] - 6, 1, 0), C.flow));
+      });
+      const code = label('fn f(a: u16, b: u16, c: u32) -> u32 {\n  (a as u32 * b as u32) + c\n}', { mono: true, size: 20, bg: 'rgba(20,28,52,.95)', scale: 0.026 }); code.position.set(xs[0], 3, 0); g.add(code);
+      const nodes = { a: [-3.5, 5.5], b: [-1, 5.5], c: [3, 5.5], mul: [-2.2, 2.8], add: [0.5, 0.6], out: [0.5, -1.8] };
+      const edges = [['a', 'mul'], ['b', 'mul'], ['mul', 'add'], ['c', 'add'], ['add', 'out']];
+      [1, 2].forEach(k => {
+        const ox = xs[k]; const pts = {};
+        Object.keys(nodes).forEach(n => { const p = V(ox + nodes[n][0], nodes[n][1], 0); pts[n] = p; const op = n === 'mul' || n === 'add'; const b = ball(op ? 0.75 : 0.45, op ? C.flow : C.other, { emissive: op ? C.flow : 0, ei: 0.25 }); b.position.copy(p); g.add(b); });
+        edges.forEach(e => g.add(line([pts[e[0]], pts[e[1]]], 0x9fb4e8, 0.7)));
+        const lm = label('×', { size: 22, mono: true, scale: 0.024 }); lm.position.copy(pts.mul).add(V(1.1, 0, 0)); g.add(lm);
+        const la = label('+', { size: 22, mono: true, scale: 0.024 }); la.position.copy(pts.add).add(V(1.1, 0, 0)); g.add(la);
+        if (k === 2) {
+          const p1 = plane(9, 7, C.accent, 0.18); p1.position.set(ox + 0.2, 1.8, 0); g.add(p1);
+          const r = label('register', { size: 20, color: '#f0b54c', mono: true, scale: 0.024 }); r.position.set(ox + 3.6, 1.8, 0.2); g.add(r);
+          const s0 = label('stage 0', { size: 18, color: '#a3afcc', mono: true, scale: 0.024 }); s0.position.set(ox - 3.2, 4.2, 0.2); g.add(s0);
+          const s1 = label('stage 1', { size: 18, color: '#a3afcc', mono: true, scale: 0.024 }); s1.position.set(ox - 3.2, -0.6, 0.2); g.add(s1);
+        }
+      });
+      const chip = box(6, 1.2, 6, 0x2a3659, { rough: 0.4, metal: 0.4 }); chip.position.set(xs[3], 1.2, 0); g.add(chip);
+      for (let i = 0; i < 6; i++) { const pin = box(0.4, 0.3, 1.2, 0xc9d2ea); pin.position.set(xs[3] - 2.5 + i, 0.6, 3.6); g.add(pin); const pin2 = pin.clone(); pin2.position.z = -3.6; g.add(pin2); }
+      const vl = label('module f(clk, a, b, c, out)', { mono: true, size: 18, color: '#a3afcc', scale: 0.024 }); vl.position.set(xs[3], 3.6, 0); g.add(vl);
+      st.pulseMesh = ball(0.7, C.accent, { emissive: C.accent, ei: 1.2 }); st.pulseMesh.visible = false; g.add(st.pulseMesh);
+      st.pulsePath = new THREE.CatmullRomCurve3([V(-21, 3, 2), V(-7, 3, 2), V(7, 3, 2), V(21, 3, 2)]);
+    },
+    tick(dt) {
+      if (!st.pulseOn) return;
+      st.pulse += dt * 0.28; const m = st.pulseMesh; m.visible = true;
+      if (st.pulse >= 1) { st.pulse = 1; st.pulseOn = false; setTimeout(() => { m.visible = false; }, 600); document.getElementById('play-out').textContent = 'Four steps done: description → graph → stages → Verilog'; }
+      m.position.copy(st.pulsePath.getPointAt(st.pulse));
+      const i = Math.min(3, Math.floor(st.pulse * 3.999)); document.getElementById('play-out').textContent = ['Writing the description', 'Building the graph', 'Cutting stages', 'Emitting Verilog'][i];
+    }
+  });
+
+  // C2 clock 決定 stage 數
+  const DAG = [
+    { id: 'x', name: 'input x', d: 0, p: [] }, { id: 'y', name: 'input y', d: 0, p: [] }, { id: 'k', name: 'input k', d: 0, p: [] },
+    { id: 'mul', name: 'mul x·y', d: 1300, p: ['x', 'y'] }, { id: 'add1', name: 'add x+k', d: 250, p: ['x', 'k'] },
+    { id: 'shl', name: 'shift', d: 60, p: ['add1'] }, { id: 'add2', name: 'add', d: 300, p: ['mul', 'shl'] },
+    { id: 'cmp', name: 'compare', d: 150, p: ['add2', 'k'] }, { id: 'sel', name: 'select', d: 100, p: ['cmp', 'add2', 'y'] },
+    { id: 'xor', name: 'xor', d: 50, p: ['sel', 'y'] }, { id: 'out', name: 'output', d: 0, p: ['xor'] }
+  ];
+  function schedule(clock) {
+    const by = {}; let bad = null;
+    DAG.forEach(n => {
+      let start = 0; n.p.forEach(q => { start = Math.max(start, by[q].end); });
+      if (n.d > clock) { bad = n; }
+      let stage = Math.floor(start / clock + 1e-9);
+      if (n.d > 0 && (start - stage * clock) + n.d > clock + 1e-6) { stage += 1; start = stage * clock; }
+      by[n.id] = { stage, start, end: start + n.d, n };
+    });
+    const stages = Math.max.apply(null, Object.values(by).map(v => v.stage)) + 1;
+    return { by, stages, bad };
+  }
+  S.push({
+    track: 'c', dot: '2',
+    eyebrow: 'Concepts · station 2',
+    title: 'Cutting stages: the clock sets the stage count, the source does not change',
+    html: '<p>Every operation in the graph has an estimated delay (from the tool’s built-in delay model). The tool packs operations forward; whatever does not fit in this clock period opens a new stage with a register in between. Drag the clock and watch the stage count: a short clock means more stages and longer latency, a long clock means fewer stages.</p><p>Two limits: a single operation longer than the clock cannot be scheduled, and the tool asks you to relax the clock or split the operation; a memory round trip also sets a floor on the stage count.</p>',
+    ctl: '<div class="slider"><label><span>clock (ps)</span><span class="readout" id="clk-out"></span></label><input type="range" id="clk" min="600" max="3200" step="50" value="1400"></div><span class="readout" id="stage-out"></span>',
+    init() { const r = document.getElementById('clk'); r.oninput = () => { st.clock = +r.value; rebuildDag(); }; st.clock = +r.value; rebuildDag(); },
+    cam: { pos: V(GAP, 9, CZ + 78), target: V(GAP, 5, CZ) },
+    build(g) { g.position.z = CZ; st.dagGroup = new THREE.Group(); g.add(st.dagGroup); }
+  });
+  function rebuildDag() {
+    const g = st.dagGroup; if (!g) return; clear(g);
+    const clock = st.clock, r = schedule(clock);
+    const out = document.getElementById('stage-out'), co = document.getElementById('clk-out');
+    co.textContent = clock + ' ps';
+    const cols = [C.flow, 0x7aa2ff, 0xc89bff, 0xff9ad0, 0xffc98a, 0x9be8b0, 0x8fd3ff, 0xf5f0a0];
+    const perStage = {}; DAG.forEach(n => { const s = r.by[n.id].stage; (perStage[s] = perStage[s] || []).push(n.id); });
+    const W = 14, offset = (r.stages - 1) * W / 2, pos = {};
+    Object.keys(perStage).forEach(s => { const ids = perStage[s]; ids.forEach((id, i) => { pos[id] = V(GAP + s * W - offset, 5 + (ids.length - 1) * 2.3 - i * 4.6, 0); }); });
+    DAG.forEach(n => n.p.forEach(q => g.add(line([pos[q], pos[n.id]], 0x9fb4e8, 0.55))));
+    DAG.forEach(n => {
+      const s = r.by[n.id].stage, isBad = r.bad && r.bad.id === n.id;
+      const b = ball(n.d ? 0.9 : 0.5, isBad ? C.warn : (n.d ? cols[s % cols.length] : C.other), { emissive: isBad ? C.warn : (n.d ? cols[s % cols.length] : 0), ei: isBad ? 1 : 0.3 });
+      b.position.copy(pos[n.id]); g.add(b);
+      const l = label(n.d ? n.name + '\n' + n.d + ' ps' : n.name, { size: 20, scale: 0.022 * LK, color: isBad ? '#ff7b8e' : C.text, bg: 'rgba(10,16,32,.7)' }); l.position.copy(pos[n.id]).add(V(0, n.d ? 2.7 : 1.9, 0)); g.add(l);
+    });
+    if (r.bad) {
+      out.className = 'readout bad'; out.textContent = 'Cannot schedule: ' + r.bad.name + ' takes ' + r.bad.d + ' ps, longer than the clock';
+      const msg = label('Tool says: Try --clock_period_ps=' + r.bad.d, { mono: true, size: 22, color: '#ff7b8e', bg: 'rgba(10,16,32,.85)', scale: 0.026 * LK }); msg.position.set(GAP, 22, 0); g.add(msg);
+    } else {
+      out.className = 'readout'; out.textContent = r.stages + ' stages, ' + (r.stages - 1) + ' register layer' + (r.stages === 2 ? '' : 's') + ', latency ' + r.stages + ' cycles';
+      for (let s = 0; s < r.stages - 1; s++) { const p = plane(0.3, 28, C.accent, 0.35); p.rotation.y = Math.PI / 2; p.position.set(GAP + (s + 0.5) * W - offset, 5, 0); g.add(p); const l = label('register', { mono: true, size: 18, color: '#f0b54c', scale: 0.022 * LK }); l.position.set(GAP + (s + 0.5) * W - offset, 20.5, 0); g.add(l); }
+      for (let s = 0; s < r.stages; s++) { const l = label('stage ' + s, { mono: true, size: 18, color: '#a3afcc', scale: 0.022 * LK }); l.position.set(GAP + s * W - offset, -10.5, 0); g.add(l); }
+    }
+  }
+
+  // C3 模組與訊息
+  S.push({
+    track: 'c', dot: '3',
+    eyebrow: 'Concepts · station 3',
+    title: 'Modules and messages: a module with state runs every cycle, and modules talk through channels',
+    html: '<p>Besides functions there is a second kind of thing: a module with its own state that runs once every cycle (a proc). Modules pass messages through channels, and the tool generates the ready/valid handshake: the sender raises valid, the receiver raises ready, and the message moves only when both are up. Otherwise it waits in the channel.</p><p>Press “Keep B busy”: B drops ready, the message A sent waits in the channel, and it crosses once B is free again. That is backpressure.</p>',
+    ctl: '<button class="btn" id="busy" type="button">Keep B busy</button><span class="readout" id="busy-out">Messages flowing</span>',
+    init() { document.getElementById('busy').onclick = () => { st.busyUntil = st.t + 3.2; document.getElementById('busy-out').textContent = 'B dropped ready; the message waits in the channel'; }; },
+    cam: { pos: V(GAP * 2, 13, CZ + 70), target: V(GAP * 2, 2.5, CZ) },
+    build(g) {
+      g.position.z = CZ;
+      const X = GAP * 2, xs = [-16, 0, 16]; st.mods = [];
+      ['A', 'B', 'C'].forEach((n, i) => {
+        const m = box(8, 6, 8, C.slab2, { opacity: 0.55, rough: 0.5 }); m.position.set(X + xs[i], 3, 0); g.add(m);
+        const edge = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(8, 6, 8)), new THREE.LineBasicMaterial({ color: 0x9fb4e8, transparent: true, opacity: 0.6 })); edge.position.copy(m.position); g.add(edge);
+        const state = new THREE.Mesh(new THREE.CylinderGeometry(1.3, 1.3, 2.2, 24), mat(C.accent, { emissive: C.accent, ei: 0.35 })); state.position.set(X + xs[i], 2.4, 0); g.add(state);
+        const sl = label('state', { mono: true, size: 18, color: '#f0b54c', scale: 0.022 }); sl.position.set(X + xs[i], 4.6, 0); g.add(sl);
+        const l = label('Module ' + n + ' (proc)', { size: 24, weight: 600 }); l.position.set(X + xs[i], 8, 0); g.add(l);
+        st.mods.push({ x: X + xs[i] });
+      });
+      st.chans = [];
+      [[0, 1], [1, 2]].forEach(pair => {
+        const a = st.mods[pair[0]].x + 4, b = st.mods[pair[1]].x - 4;
+        g.add(tube([V(a, 3, 0), V((a + b) / 2, 3, 0), V(b, 3, 0)], 0.35, C.flow, { opacity: 0.35, emissive: C.flow, ei: 0.2 }));
+        const valid = ball(0.45, 0x333a4d, { emissive: C.flow, ei: 0 }); valid.position.set(a + 0.6, 4.4, 0); g.add(valid);
+        const ready = ball(0.45, 0x333a4d, { emissive: C.flow, ei: 0 }); ready.position.set(b - 0.6, 4.4, 0); g.add(ready);
+        const lv = label('valid', { mono: true, size: 16, color: '#a3afcc', scale: 0.02 }); lv.position.set(a + 0.6, 5.4, 0); g.add(lv);
+        const lr = label('ready', { mono: true, size: 16, color: '#a3afcc', scale: 0.02 }); lr.position.set(b - 0.6, 5.4, 0); g.add(lr);
+        const pk = ball(0.55, C.accent, { emissive: C.accent, ei: 1 }); pk.visible = false; g.add(pk);
+        const cl = label('channel', { mono: true, size: 16, color: '#58d1c4', scale: 0.02 }); cl.position.set((a + b) / 2, 1.6, 0); g.add(cl);
+        st.chans.push({ a, b, valid, ready, pk, t: -1, wait: 0 });
+      });
+      g.add(platform(56, 16, X, 0));
+      st.emit = 0; st.busyUntil = -1;
+    },
+    tick(dt) {
+      st.emit += dt;
+      const busy = st.t < st.busyUntil;
+      if (!busy && document.getElementById('busy-out').textContent.startsWith('B dropped')) document.getElementById('busy-out').textContent = 'B is ready again; the waiting message went through';
+      const ch = st.chans;
+      if (st.emit > 1.6 && ch[0].t < 0) { ch[0].t = 0; st.emit = 0; }
+      ch.forEach((c, i) => {
+        const recvReady = !(i === 0 && busy);
+        c.ready.material.emissiveIntensity = recvReady ? 0.9 : 0.05;
+        if (c.t >= 0) {
+          c.pk.visible = true;
+          if (c.t < 1) { c.t = Math.min(1, c.t + dt * 0.7); c.pk.position.set(lerp(c.a, c.b, c.t), 3 + Math.sin(c.t * Math.PI) * 0.6, 0); c.valid.material.emissiveIntensity = 0.9; }
+          else {
+            c.valid.material.emissiveIntensity = 0.9;
+            if (recvReady) { c.wait += dt; if (c.wait > 0.25) { c.t = -1; c.wait = 0; c.pk.visible = false; c.valid.material.emissiveIntensity = 0.05; if (i === 0 && ch[1].t < 0) ch[1].t = 0; } }
+            else { c.pk.position.set(c.b, 3 + Math.sin(st.t * 8) * 0.15, 0); }
+          }
+        } else { c.pk.visible = false; c.valid.material.emissiveIntensity = 0.05; }
+      });
+    }
+  });
+
+  // C4 多模組成系統
+  S.push({
+    track: 'c', dot: '4',
+    eyebrow: 'Concepts · station 4',
+    title: 'Many modules as a system: separate scheduling needs FIFOs to line up timing, unified scheduling turns channels into wires',
+    html: '<p>Each module gets its own pipeline, and the timing between them has to be lined up: FIFOs between modules, their depths worked out, and combinational loops from the handshakes handled. Switch to “Unified”: the whole network is scheduled as one pipeline, channels become wires, FIFOs and handshakes disappear; the price is that every module follows the same set of stages.</p><p class="note">Which one is done and which one is still being built: see the 2025 station on the history track.</p>',
+    ctl: '<button class="btn" id="uni" type="button" aria-pressed="false">Separate</button><span class="readout" id="uni-out">Each module has its own stages; FIFOs and handshakes in between</span>',
+    init() { const b = document.getElementById('uni'); b.onclick = () => { st.unified = !st.unified; b.setAttribute('aria-pressed', String(st.unified)); b.textContent = st.unified ? 'Unified' : 'Separate'; document.getElementById('uni-out').textContent = st.unified ? 'One set of stages for the whole network; channels become wires, no FIFOs or handshakes' : 'Each module has its own stages; FIFOs and handshakes in between'; applyUnified(); }; st.unified = false; applyUnified(); },
+    cam: { pos: V(GAP * 3, 15, CZ + 74), target: V(GAP * 3, 2, CZ) },
+    build(g) {
+      g.position.z = CZ;
+      const X = GAP * 3; g.add(platform(56, 18, X, 0));
+      st.sysSep = new THREE.Group(); st.sysUni = new THREE.Group(); g.add(st.sysSep); g.add(st.sysUni);
+      const xs = [-21, -7, 7, 21], stg = [2, 3, 2, 3];
+      xs.forEach((x, i) => {
+        const m = box(10, 5, 7, C.slab2, { opacity: 0.5 }); m.position.set(X + x, 2.5, 0); g.add(m);
+        const l = label('Module ' + 'ABCD'[i], { size: 22, weight: 600 }); l.position.set(X + x, 6.6, 0); g.add(l);
+        for (let s = 1; s < stg[i]; s++) { const p = plane(0.25, 4.6, C.accent, 0.45); p.rotation.y = Math.PI / 2; p.position.set(X + x - 5 + s * 10 / stg[i], 2.5, 0); st.sysSep.add(p); }
+        if (i < 3) {
+          for (let k = 0; k < 3; k++) { const f = box(1.2, 0.5, 3, 0x2f3b5e); f.position.set(X + x + 7, 0.6 + k * 0.7, 0); st.sysSep.add(f); }
+          const fl = label('FIFO', { mono: true, size: 16, color: '#a3afcc', scale: 0.02 }); fl.position.set(X + x + 7, 3.4, 0); st.sysSep.add(fl);
+          const v = ball(0.35, 0x333a4d, { emissive: C.flow, ei: 0.8 }); v.position.set(X + x + 5.6, 4.6, 0); st.sysSep.add(v);
+          const r = ball(0.35, 0x333a4d, { emissive: C.flow, ei: 0.8 }); r.position.set(X + x + 8.4, 4.6, 0); st.sysSep.add(r);
+          const w = tube([V(X + x + 5, 2.5, 0), V(X + x + 9, 2.5, 0)], 0.22, C.flow, { opacity: 0.6 }); st.sysUni.add(w);
+        }
+      });
+      for (let s = 1; s < 7; s++) { const p = plane(0.3, 5.2, C.accent, 0.45); p.rotation.y = Math.PI / 2; p.position.set(X - 26 + s * 52 / 7, 2.5, 0); st.sysUni.add(p); }
+      const ul = label('One pipeline, seven stages, crossing module boundaries', { size: 20, color: '#f0b54c', scale: 0.022 }); ul.position.set(X, 9, 0); st.sysUni.add(ul);
+      const sl = label('Four pipelines, each with its own stages, joined by FIFOs', { size: 20, color: '#a3afcc', scale: 0.022 }); sl.position.set(X, 9, 0); st.sysSep.add(sl);
+      st.sysPk = []; for (let k = 0; k < 4; k++) { const pk = ball(0.45, C.accent, { emissive: C.accent, ei: 1 }); g.add(pk); st.sysPk.push({ m: pk, t: k * 0.25, hold: 0 }); }
+    },
+    tick(dt) {
+      const X = GAP * 3;
+      st.sysPk.forEach((p, k) => {
+        if (st.unified) { p.t = (p.t + dt * 0.12) % 1; }
+        else {
+          const seg = Math.floor(p.t * 4), local = p.t * 4 - seg;
+          if (local > 0.92 && p.hold < 0.6 && seg < 3) { p.hold += dt; } else { p.t = (p.t + dt * 0.14) % 1; if (local < 0.05) p.hold = 0; }
+        }
+        p.m.position.set(X - 26 + p.t * 52, 2.5 + Math.sin(st.t * 3 + k) * 0.2, 0);
+      });
+    }
+  });
+  function applyUnified() { if (!st.sysSep) return; st.sysSep.visible = !st.unified; st.sysUni.visible = !!st.unified; }
+
+  // C5 翻譯一定正確
+  S.push({
+    track: 'c', dot: '5',
+    eyebrow: 'Concepts · station 5',
+    title: 'Translation always correct: random programs, three ways to run, bit-for-bit comparison',
+    html: '<p>The same program runs three ways: the interpreter, JIT compilation, and simulation of the generated Verilog, and the results are compared bit for bit. Thousands of randomly generated programs go through this every day; any mismatch is a bug in the tool, never the user’s problem. A separate tool uses an SMT solver to prove two IRs equivalent before and after optimization.</p><p>Press “Throw in a random program” to watch one comparison; every fourth one hits a deliberately planted mismatch.</p>',
+    ctl: '<button class="btn primary" id="fuzz" type="button">Throw in a random program</button><span class="kv" id="fuzz-out">programs <b>0</b> · bugs <b>0</b></span>',
+    init() { st.fz = { n: 0, bugs: 0, run: -1 }; document.getElementById('fuzz').onclick = () => { if (st.fz.run >= 0) return; st.fz.run = 0; st.fz.n++; st.fz.isBug = st.fz.n % 4 === 0; st.fz.val = (Math.random() * 0xffff | 0).toString(16).padStart(4, '0'); }; },
+    cam: { pos: V(GAP * 4, 30, CZ + 62), target: V(GAP * 4, 2, CZ) },
+    build(g) {
+      g.position.z = CZ;
+      const X = GAP * 4; g.add(platform(50, 20, X, 0));
+      const gen = box(4, 4, 4, C.slab2, { rough: 0.4 }); gen.position.set(X - 20, 3, 0); g.add(gen); st.gen = gen;
+      const gl = label('Random program\ngenerator', { size: 20, scale: 0.022 }); gl.position.set(X - 20, 7, 0); g.add(gl);
+      st.lanes = ['Interpreter', 'JIT compile', 'Verilog sim'].map((n, i) => {
+        const z = (i - 1) * 6.5;
+        const m = box(5, 3, 3.5, 0x2a3659, { rough: 0.5 }); m.position.set(X - 2, 2.5, z); g.add(m);
+        const l = label(n, { size: 20, scale: 0.022 }); l.position.set(X - 2, 5.2, z); g.add(l);
+        g.add(tube([V(X - 18, 3, 0), V(X - 10, 3, z * 0.6), V(X - 4.6, 3, z)], 0.18, C.flow, { opacity: 0.35 }));
+        g.add(tube([V(X + 0.6, 3, z), V(X + 7, 3, z * 0.6), V(X + 14, 3, 0)], 0.18, C.flow, { opacity: 0.35 }));
+        const pk = ball(0.5, C.accent, { emissive: C.accent, ei: 1 }); pk.visible = false; g.add(pk);
+        const res = new THREE.Group(); res.position.set(X + 7, 5.6, z); g.add(res);
+        return { z, pk, res, m };
+      });
+      st.cmp = box(5, 5, 5, C.slab2, { rough: 0.4 }); st.cmp.position.set(X + 17, 3, 0); g.add(st.cmp);
+      const cl = label('Bit-for-bit compare', { size: 20, scale: 0.022 }); cl.position.set(X + 17, 7, 0); g.add(cl);
+      st.cmpOut = new THREE.Group(); st.cmpOut.position.set(X + 17, 9.4, 0); g.add(st.cmpOut);
+      const z3 = box(4, 2.4, 3, 0x3a2f55, { rough: 0.6 }); z3.position.set(X + 17, 1.2, 9); g.add(z3);
+      const zl = label('SMT solver\nproves two IRs equivalent', { size: 18, scale: 0.02, color: '#a3afcc' }); zl.position.set(X + 17, 4.4, 9); g.add(zl);
+    },
+    tick(dt) {
+      const f = st.fz; if (!f || f.run < 0) return;
+      f.run += dt; const X = GAP * 4;
+      if (!RM) st.gen.rotation.y += dt * 3;
+      st.lanes.forEach((L, i) => {
+        const t1 = Math.min(1, f.run / 1.0);
+        if (f.run < 1.0) { L.pk.visible = true; L.pk.position.set(lerp(X - 18, X - 4.6, t1), 3, lerp(0, L.z, t1)); }
+        else if (f.run < 2.1) { const t2 = (f.run - 1.0) / 1.1; L.pk.position.set(lerp(X + 0.6, X + 14, t2), 3, lerp(L.z, 0, t2)); if (L.res.children.length === 0) { const bad = f.isBug && i === 2; const v = bad ? (parseInt(f.val, 16) ^ 0x0100).toString(16).padStart(4, '0') : f.val; const s = label('0x' + v, { mono: true, size: 20, color: bad ? '#ff7b8e' : '#58d1c4', bg: 'rgba(10,16,32,.85)', scale: 0.022 * LK }); L.res.add(s); } }
+        else { L.pk.visible = false; }
+      });
+      if (f.run >= 2.1 && st.cmpOut.children.length === 0) {
+        if (f.isBug) f.bugs++;
+        const s = label(f.isBug ? 'Mismatch: a bug in the tool' : 'Match', { size: 22, weight: 600, color: f.isBug ? '#ff7b8e' : '#58d1c4', bg: 'rgba(10,16,32,.85)', scale: 0.024 * LK }); st.cmpOut.add(s);
+        st.cmp.material.emissive.setHex(f.isBug ? C.warn : C.flow); st.cmp.material.emissiveIntensity = 0.6;
+        document.getElementById('fuzz-out').innerHTML = 'programs <b>' + f.n + '</b> · bugs <b>' + f.bugs + '</b>';
+      }
+      if (f.run > 3.6) { f.run = -1; clear(st.cmpOut); st.lanes.forEach(L => clear(L.res)); st.cmp.material.emissiveIntensity = 0; }
+    }
+  });
+
+  // ---------- build all ----------
+  const LK = 1.6;   // 概念世界的字的放大倍率
+  function buildAll() { S.forEach(s => { const g = new THREE.Group(); scene.add(g); stationGroups.push(g); s.build(g); if (s.track === 'c') g.traverse(n => { if (n.isSprite) n.scale.multiplyScalar(LK); }); }); }
+  const TRACKS = { h: [], c: [] };
+  S.forEach((s, i) => { if (TRACKS[s.track]) TRACKS[s.track].push(i); });
+
+  // ---------- UI ----------
+  const dots = document.getElementById('dots'), tabH = document.getElementById('tab-h'), tabC = document.getElementById('tab-c');
+  tabH.onclick = () => goTo(S[cur].track === 'h' ? cur : TRACKS.h[0]);
+  tabC.onclick = () => goTo(S[cur].track === 'c' ? cur : TRACKS.c[0]);
+  document.getElementById('brand').onclick = () => goTo(0);
+  let dotsTrack = null;
+  function buildDots(track) {
+    if (dotsTrack === track) return; dotsTrack = track; dots.innerHTML = '';
+    if (!TRACKS[track]) { dots.hidden = true; return; }
+    dots.hidden = false;
+    TRACKS[track].forEach(i => { const b = document.createElement('button'); b.type = 'button'; b.setAttribute('role', 'tab'); b.textContent = S[i].dot; b.title = S[i].title; b.onclick = () => goTo(i); dots.appendChild(b); });
+  }
+  const prev = document.getElementById('prev'), next = document.getElementById('next');
+  function step(d) { const list = TRACKS[S[cur].track]; if (!list) { if (d > 0) goTo(TRACKS.h[0]); return; } const k = list.indexOf(cur) + d; if (k < 0) goTo(0); else if (k < list.length) goTo(list[k]); }
+  prev.onclick = () => step(-1); next.onclick = () => step(1);
+  window.addEventListener('keydown', e => { if (e.key === 'ArrowRight' || e.key === 'PageDown') step(1); if (e.key === 'ArrowLeft' || e.key === 'PageUp') step(-1); });
+
+  let cur = -1;
+  const camFrom = { pos: new THREE.Vector3(), target: new THREE.Vector3() }, camTo = { pos: new THREE.Vector3(), target: new THREE.Vector3() };
+  const camNow = { pos: new THREE.Vector3(), target: new THREE.Vector3() };
+  let camT = 1, orbit = { th: 0, ph: 0 };
+  function goTo(i) {
+    i = Math.max(0, Math.min(S.length - 1, i)); if (i === cur) return;
+    cur = i; const s = S[i];
+    stationGroups.forEach((g, k) => { if (S[k].onlyWhenCurrent) g.visible = k === i; });
+    const ey = document.getElementById('p-eyebrow'); ey.textContent = s.eyebrow; ey.className = 'eyebrow' + (s.track === 'c' ? ' c' : '');
+    document.getElementById('p-title').textContent = s.title;
+    document.getElementById('p-html').innerHTML = s.html;
+    document.getElementById('p-ctl').innerHTML = s.ctl || '';
+    document.querySelector('#side .body').scrollTop = 0;
+    s.init && s.init();
+    buildDots(s.track);
+    tabH.setAttribute('aria-pressed', String(s.track === 'h')); tabC.setAttribute('aria-pressed', String(s.track === 'c'));
+    dots.querySelectorAll('button').forEach((b, k) => { if (TRACKS[s.track] && TRACKS[s.track][k] === i) b.setAttribute('aria-current', 'step'); else b.removeAttribute('aria-current'); });
+    const list = TRACKS[s.track];
+    prev.disabled = i === 0; next.disabled = list ? list.indexOf(i) === list.length - 1 : false;
+    camFrom.pos.copy(camNow.pos); camFrom.target.copy(camNow.target);
+    camTo.pos.copy(s.cam.pos); camTo.target.copy(s.cam.target);
+    camT = RM ? 1 : 0; orbit.th = 0; orbit.ph = 0;
+    try { localStorage.setItem('xls-journey-station', String(i)); } catch (e) {}
+  }
+
+  let drag = null;
+  canvas.addEventListener('pointerdown', e => { drag = { x: e.clientX, y: e.clientY, th: orbit.th, ph: orbit.ph }; canvas.classList.add('dragging'); canvas.setPointerCapture(e.pointerId); });
+  canvas.addEventListener('pointermove', e => { if (!drag) return; orbit.th = drag.th - (e.clientX - drag.x) * 0.005; orbit.ph = Math.max(-0.5, Math.min(0.45, drag.ph + (e.clientY - drag.y) * 0.004)); });
+  const endDrag = () => { drag = null; canvas.classList.remove('dragging'); };
+  canvas.addEventListener('pointerup', endDrag); canvas.addEventListener('pointercancel', endDrag);
+
+  function resize() { const w = canvas.clientWidth, h = canvas.clientHeight; if (canvas.width !== w * renderer.getPixelRatio() || canvas.height !== h * renderer.getPixelRatio()) { renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); } }
+  const sph = new THREE.Spherical(), off = new THREE.Vector3();
+  const side = document.getElementById('side'), foldBtn = document.getElementById('fold');
+  st.folded = false;
+  foldBtn.onclick = () => { st.folded = !st.folded; side.classList.toggle('folded', st.folded); foldBtn.textContent = st.folded ? 'Show notes' : 'Hide notes'; foldBtn.setAttribute('aria-expanded', String(!st.folded)); };
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000); last = now; st.t += dt;
+    resize();
+    if (camT < 1) { camT = Math.min(1, camT + dt / 1.5); const k = ease(camT); camNow.pos.lerpVectors(camFrom.pos, camTo.pos, k); camNow.target.lerpVectors(camFrom.target, camTo.target, k); }
+    else { camNow.pos.copy(camTo.pos); camNow.target.copy(camTo.target); }
+    off.subVectors(camNow.pos, camNow.target); sph.setFromVector3(off); sph.theta += orbit.th; sph.phi = Math.max(0.2, Math.min(1.5, sph.phi + orbit.ph));
+    if (camera.aspect < 1) sph.radius *= Math.pow(1 / camera.aspect, 0.85);   // 直立的手機：鏡頭退後，整個站才裝得進畫面
+    off.setFromSpherical(sph);
+    camera.position.copy(camNow.target).add(off); camera.lookAt(camNow.target);
+    const s = S[cur]; if (s && s.tick) s.tick(dt);
+    renderer.render(scene, camera);
+    requestAnimationFrame(frame);
+  }
+  let start = 0; try { start = Math.min(S.length - 1, parseInt(localStorage.getItem('xls-journey-station') || '0', 10) || 0); } catch (e) {}
+  const hm = /[#&]s=(\d+)/.exec(location.hash || ''); if (hm) start = Math.min(S.length - 1, +hm[1]);
+  function boot() { buildHistory(); buildAll(); camNow.pos.copy(S[start].cam.pos); camNow.target.copy(S[start].cam.target); goTo(start); requestAnimationFrame(frame); }
+  // canvas 上的字在 build 時就畫死，所以先把字型抓下來；抓不到或太慢就直接開始
+  let booted = false; const bootOnce = () => { if (!booted) { booted = true; boot(); } };
+  const fontsReady = (document.fonts && document.fonts.load) ? Promise.all(['500 20px "Source Sans 3"', '600 20px "Source Sans 3"', '700 20px "Source Sans 3"', '600 20px "JetBrains Mono"'].map(f => document.fonts.load(f))) : Promise.resolve();
+  fontsReady.then(bootOnce, bootOnce); setTimeout(bootOnce, 2500);
+})();
+</script>
+
+</body>
+</html>
